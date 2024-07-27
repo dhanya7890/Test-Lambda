@@ -1,0 +1,90 @@
+{"AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Resources" : {
+"ExerciseLambdaRole": {
+  "Type": "AWS::IAM::Role",
+  "Properties": {
+    "RoleName": "exercise-lambda-Role",
+    "AssumeRolePolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [{
+        "Effect": "Allow",
+        "Principal": {
+          "Service": [ "lambda.amazonaws.com" ]
+        },
+        "Action": [ "sts:AssumeRole" ]
+      }]
+    },
+    "Path": "/",
+    "Policies": [{
+      "PolicyName": "AWSLambdaBasicExecutionRole",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [{
+          "Effect": "Allow",
+          "Action": [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          "Resource": "*"
+        }]
+      }
+    },
+    {
+      "PolicyName": "AmazonS3FullAccess",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [{
+          "Effect": "Allow",
+          "Action": "s3:*",
+          "Resource": [
+            "arn:aws:s3:::myawsbucket-for-test-1",
+            "arn:aws:s3:::myawsbucket-for-test-1/*"
+          ]
+        }]
+      }
+    },
+	   {
+      "PolicyName": "AmazonSSMGetParameter",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [{
+          "Effect": "Allow",
+          "Action":"ssm:GetParameter",
+          "Resource": [
+             "arn:aws:ssm:us-east-2:206178101536:parameter/UserName"
+          ]
+        }]
+      }
+    }
+		
+	]
+  }
+},
+    
+    "ExecerciseLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "exercise-lambda",
+        "Role": {
+          "Fn::GetAtt": ["ExerciseLambdaRole","Arn"]
+        },
+        "Runtime": "python3.12",
+        "Handler": "index.my_handler",
+        "Code": {
+			
+          "ZipFile": "import boto3\nssm_client = boto3.client(\"ssm\")\ns3 = boto3.resource('s3')\ndef my_handler(event, context):\n name = \"UserName\"\n parameter = ssm_client.get_parameter(Name=name)\n name=parameter[\"Parameter\"][\"Value\"]\n print(name)\n s3.Object('myawsbucket-for-test-1', 'newfile.txt').put(Body=name)\n return name"
+        }
+      }
+    }
+  },
+  "Outputs" : {
+  "ExecerciseLambdaFunctionOutput" : {
+    "Value" : { "Fn::GetAtt": ["ExecerciseLambdaFunction","Arn" ]}
+  }
+}
+
+
+}
+
